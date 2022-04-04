@@ -14,7 +14,7 @@ func main() {
 
 	// replace with server address
 	server := "0.0.0.0"
-	port := "2888"
+	port := "2889"
 	addr := server + ":" + port
 
 	c, err := net.Dial("tcp", addr)
