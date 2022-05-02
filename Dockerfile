@@ -10,3 +10,4 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get -y install binutils curl iproute2 ipu
 
 RUN DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get -y install tzdata
 RUN apt-get install -y golang
+RUN apt-get install -y python3-pip

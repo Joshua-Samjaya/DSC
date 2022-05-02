@@ -1,0 +1,8 @@
+make file1
+make file2
+make file3
+make file4
+delete file1
+delete file2
+delete file3
+STOP

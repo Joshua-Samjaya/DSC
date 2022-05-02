@@ -13,6 +13,8 @@ services:
         command: bash -c "
                       /etc/init.d/openbsd-inetd start  &&
                       tail -f /dev/null "
+        volumes:
+          -  /home/seed/DSC/volume:/home/volume:ro
 
     node2:
         build: .
@@ -23,11 +25,12 @@ services:
         networks:
             net-10.10.10.0:
                 ipv4_address: 10.10.10.12
-        ports: 
-        - "1233:1234"
         command: bash -c "
                       /etc/init.d/openbsd-inetd start  &&
                       tail -f /dev/null "
+        volumes:
+          -  /home/seed/DSC/volume:/home/volume:ro
+
 
     node3:
         build: .
@@ -43,6 +46,83 @@ services:
         command: bash -c "
                       /etc/init.d/openbsd-inetd start  &&
                       tail -f /dev/null "
+        volumes:
+          -  /home/seed/DSC/volume:/home/volume:ro
+
+    node4:
+        build: .
+        container_name: node4
+        tty: true
+        cap_add:
+                - ALL
+        networks:
+            net-10.10.10.0:
+                ipv4_address: 10.10.10.14
+        command: bash -c "
+                      /etc/init.d/openbsd-inetd start  &&
+                      tail -f /dev/null "
+        volumes:
+          -  /home/seed/DSC/volume:/home/volume:ro
+
+    node5:
+        build: .
+        container_name: node5
+        tty: true
+        cap_add:
+                - ALL
+        networks:
+            net-10.10.10.0:
+                ipv4_address: 10.10.10.15
+        command: bash -c "
+                      /etc/init.d/openbsd-inetd start  &&
+                      tail -f /dev/null "
+        volumes:
+          -  /home/seed/DSC/volume:/home/volume:ro
+
+    node6:
+        build: .
+        container_name: node6
+        tty: true
+        cap_add:
+                - ALL
+        networks:
+            net-10.10.10.0:
+                ipv4_address: 10.10.10.16
+        command: bash -c "
+                      /etc/init.d/openbsd-inetd start  &&
+                      tail -f /dev/null "
+        volumes:
+          -  /home/seed/DSC/volume:/home/volume:ro
+
+    node7:
+        build: .
+        container_name: node7
+        tty: true
+        cap_add:
+                - ALL
+        networks:
+            net-10.10.10.0:
+                ipv4_address: 10.10.10.17
+        command: bash -c "
+                      /etc/init.d/openbsd-inetd start  &&
+                      tail -f /dev/null "
+        volumes:
+          -  /home/seed/DSC/volume:/home/volume:ro
+
+    node8:
+        build: .
+        container_name: node8
+        tty: true
+        cap_add:
+                - ALL
+        networks:
+            net-10.10.10.0:
+                ipv4_address: 10.10.10.18
+        command: bash -c "
+                      /etc/init.d/openbsd-inetd start  &&
+                      tail -f /dev/null "
+        volumes:
+          -  /home/seed/DSC/volume:/home/volume:ro
 
                   
 networks:
