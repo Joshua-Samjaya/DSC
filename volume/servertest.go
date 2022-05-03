@@ -240,16 +240,11 @@ func (s *Server) handleConnection(c net.Conn) {
 			fmt.Println("Exiting TCP server!")
 			break
 		}
-		go s.pr(temp)
 		s.arr_lock.Lock()
 		s.reqQueue = append(s.reqQueue, netData)
 		s.arr_lock.Unlock()
 	}
 
-}
-
-func (s *Server) pr(a string) {
-	fmt.Println("AA", a)
 }
 
 func (s *Server) messageProcess(c net.Conn) {
@@ -260,7 +255,6 @@ func (s *Server) messageProcess(c net.Conn) {
 			s.arr_lock.Unlock()
 			continue
 		}
-		fmt.Println("BB", s.reqQueue)
 		netData := s.reqQueue[0]
 		s.reqQueue = s.reqQueue[1:]
 		s.arr_lock.Unlock()
