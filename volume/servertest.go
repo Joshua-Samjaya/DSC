@@ -240,6 +240,7 @@ func (s *Server) handleConnection(c net.Conn) {
 			fmt.Println("Exiting TCP server!")
 			break
 		}
+
 		s.arr_lock.Lock()
 		s.reqQueue = append(s.reqQueue, netData)
 		s.arr_lock.Unlock()
@@ -255,6 +256,7 @@ func (s *Server) messageProcess(c net.Conn) {
 			s.arr_lock.Unlock()
 			continue
 		}
+
 		netData := s.reqQueue[0]
 		s.reqQueue = s.reqQueue[1:]
 		s.arr_lock.Unlock()
@@ -283,6 +285,10 @@ func (s *Server) messageProcess(c net.Conn) {
 			if _, err := os.Stat(command[1]); os.IsNotExist(err) {
 				fmt.Println("Path does not exist")
 				reply := "Path does not exist\n"
+				c.Write([]byte(reply))
+			} else if _, err := os.Stat(command[1] + "/data"); os.IsNotExist(err) {
+				fmt.Println("No content in directory")
+				reply := "No content in directory\n"
 				c.Write([]byte(reply))
 			} else {
 				f, err := os.Open(command[1] + "/data")
