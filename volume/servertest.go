@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"math"
 	"net"
@@ -57,6 +58,7 @@ type Server struct {
 	txnlog        *log.Logger
 	reqQueue      []string
 	arr_lock      sync.Mutex
+	read_lock     sync.Mutex
 }
 
 /* --- GLOBAL VARIABLES --- */
@@ -121,7 +123,7 @@ func (s *Server) connectToPeers() {
 
 //This function is run on a separate thread whenever a message is sent towards the coordinator, that after 2 seconds if the coordinator does not respond, will start an election
 func (s *Server) messagetimer() {
-	timer := time.NewTimer(2 * time.Second)
+	timer := time.NewTimer(4 * time.Second)
 	<-timer.C
 	if s.waitresponse {
 		fmt.Println(s.ip, "message to coordinator timed out") //For debugging/demo purposes
@@ -291,17 +293,13 @@ func (s *Server) messageProcess(c net.Conn) {
 				reply := "No content in directory\n"
 				c.Write([]byte(reply))
 			} else {
-				f, err := os.Open(command[1] + "/data")
+				s.read_lock.Lock()
+				body, err := ioutil.ReadFile(command[1] + "/data")
 				if err != nil {
-					log.Fatal(err)
+					log.Fatalf("unable to read file: %v", err)
 				}
-				dat := make([]byte, 20)
-				_, err2 := f.Read(dat)
-				if err2 != nil {
-					log.Fatal(err)
-				}
-				f.Close()
-				datStr := string(dat)
+				s.read_lock.Unlock()
+				datStr := string(body)
 				fmt.Println(datStr)
 				c.Write([]byte(datStr + "\n"))
 			}
