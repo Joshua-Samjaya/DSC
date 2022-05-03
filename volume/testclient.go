@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"time"
 )
 
 func main() {
@@ -18,7 +19,7 @@ func main() {
 
 	}
 
-	if len(os.Args) > 2 {
+	if len(os.Args) != 2 {
 		fmt.Println("Too many parameters! Please only run as:")
 		fmt.Println("go run testclient.go <command_file>")
 		os.Exit(1)
@@ -56,32 +57,35 @@ func main() {
 	}
 	defer file.Close()
 
-	scanner := bufio.NewScanner(file)
+	for {
+		scanner := bufio.NewScanner(file)
 
-	for scanner.Scan() {
-		//time.Sleep(time.Second)
+		for scanner.Scan() {
+			time.Sleep(time.Millisecond * 10)
 
-		text := scanner.Text()
-		fmt.Println(scanner.Text())
-		s := strings.Split(text, " ")
-		if s[0] != "read" {
-			fmt.Print(">> ")
-		}
+			text := scanner.Text()
+			fmt.Println(scanner.Text())
+			s := strings.Split(text, " ")
+			if s[0] != "read" {
+				fmt.Print(">> ")
+			}
 
-		if (s[0] == "make" || s[0] == "delete" || s[0] == "read") && len(s) < 2 {
-			fmt.Println("Please provide a valid argument!")
-			continue
-		} else if s[0] == "write" && len(s) < 3 {
-			fmt.Println("Please provide valid arguments!")
-			continue
-		}
-		fmt.Fprintf(c, text+"\n")
+			if (s[0] == "make" || s[0] == "delete" || s[0] == "read") && len(s) < 2 {
+				fmt.Println("Please provide a valid argument!")
+				continue
+			} else if s[0] == "write" && len(s) < 3 {
+				fmt.Println("Please provide valid arguments!")
+				continue
+			}
+			fmt.Fprintf(c, text+"\n")
 
-		if strings.TrimSpace(string(text)) == "STOP" {
-			fmt.Println("TCP client exiting...")
-			return
+			if strings.TrimSpace(string(text)) == "STOP" {
+				fmt.Println("TCP client exiting...")
+				return
+			}
 		}
 	}
+
 }
 
 func handleClientConn(c net.Conn) {
