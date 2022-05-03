@@ -7,10 +7,25 @@ import (
 	"net"
 	"os"
 	"strings"
-	"time"
 )
 
 func main() {
+
+	if len(os.Args) == 1 {
+		fmt.Println("Too little parameters! Please only run as:")
+		fmt.Println("go run testclient.go <command_file>")
+		os.Exit(1)
+
+	}
+
+	if len(os.Args) != 2 {
+		fmt.Println("Too many parameters! Please only run as:")
+		fmt.Println("go run testclient.go <command_file>")
+		os.Exit(1)
+
+	}
+	cmd_file := os.Args[1]
+	fmt.Println(cmd_file)
 
 	fmt.Println("Client alive")
 
@@ -34,7 +49,7 @@ func main() {
 
 	fmt.Print(">> ")
 
-	file, err := os.Open("commands.txt")
+	file, err := os.Open(cmd_file)
 
 	if err != nil {
 		log.Fatal(err)
@@ -44,7 +59,7 @@ func main() {
 	scanner := bufio.NewScanner(file)
 
 	for scanner.Scan() {
-		time.Sleep(time.Second)
+		//time.Sleep(time.Second)
 
 		text := scanner.Text()
 		fmt.Println(scanner.Text())
@@ -66,9 +81,7 @@ func main() {
 			fmt.Println("TCP client exiting...")
 			return
 		}
-
 	}
-
 }
 
 func handleClientConn(c net.Conn) {
