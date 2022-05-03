@@ -18,7 +18,7 @@ func main() {
 
 	}
 
-	if len(os.Args) != 2 {
+	if len(os.Args) > 2 {
 		fmt.Println("Too many parameters! Please only run as:")
 		fmt.Println("go run testclient.go <command_file>")
 		os.Exit(1)
