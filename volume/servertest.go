@@ -708,7 +708,7 @@ func (s *Server) handleRejoin(ip string) {
 
 //This function is attempt to rejoin network
 func (s *Server) rejoin() {
-	ADDR_LIST := [...]string{"10.10.10.11", "10.10.10.12", "10.10.10.13"}
+	ADDR_LIST := [...]string{"10.10.10.11", "10.10.10.12", "10.10.10.13", "10.10.10.14"}
 	PORT := ":2888"
 	msg := "REGISTER " + s.ip + "\n"
 	for _, addr := range ADDR_LIST {
@@ -746,7 +746,7 @@ func main() {
 			log.Panic(err)
 		}
 		defer txnFile.Close()
-		coordinator = "10.10.10.13"
+		coordinator = "10.10.10.14"
 		normal = true
 
 	case "rejoin":
