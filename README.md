@@ -15,10 +15,10 @@ The implementation support the following requests
 ## Documentation
 There are three scripts, which are:
 1. **server.go**        : the server-side script
-2. **client.go**     : the client-side script; handles one request at a time
+2. **client.go**     : the client-side script; handles one manually-inputted request at a time
 3. **testclient.go**   : the client-side testing script; handle multiple requests from a specified command input file
 
-To run the code, follow the steps below:
+To run the code, follow these steps:
 1. Build and connect to all containers
 2. For the server nodes, run the following from main dir: ***go run home/volume/server.go***. It is important to run node3 first as it is the initial leader.
 3. For the client nodes, run ***cd home/volume*** followed by ***go run client.go***. Specify the server node to connect to by inputting its IP.
