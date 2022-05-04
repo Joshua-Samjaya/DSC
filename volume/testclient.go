@@ -61,7 +61,8 @@ func main() {
 		scanner := bufio.NewScanner(file)
 
 		for scanner.Scan() {
-			time.Sleep(time.Millisecond * 10)
+			// 10 req per second
+			time.Sleep(time.Millisecond * 100)
 
 			text := scanner.Text()
 			fmt.Println(scanner.Text())

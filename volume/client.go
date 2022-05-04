@@ -64,6 +64,7 @@ func handleClientConn(c net.Conn) {
 			fmt.Println(err)
 			return
 		}
+
 		fmt.Print(netData)
 		fmt.Print(">> ")
 	}

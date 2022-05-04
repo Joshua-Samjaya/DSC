@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"math"
 	"net"
@@ -13,7 +12,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -56,15 +54,7 @@ type Server struct {
 	queue         []Transaction  //maintained in follower, to keep proposals from server
 	txnReplies    map[string]int //maintained in leader, to keep transactions and reply counts from followers
 	txnlog        *log.Logger
-	reqQueue      []string
-	arr_lock      sync.Mutex
-	read_lock     sync.Mutex
 }
-
-/* --- GLOBAL VARIABLES --- */
-var mutex = &sync.RWMutex{}
-
-/* --- GLOBAL VARIABLES END --- */
 
 func (s *Server) connectToPeers() {
 	port := ":8080"
@@ -74,7 +64,7 @@ func (s *Server) connectToPeers() {
 		done := 0
 		l, err := net.Listen("tcp4", port)
 		if err != nil {
-			fmt.Println("ERROR", err)
+			fmt.Println(err)
 			return
 		}
 		defer l.Close()
@@ -123,7 +113,7 @@ func (s *Server) connectToPeers() {
 
 //This function is run on a separate thread whenever a message is sent towards the coordinator, that after 2 seconds if the coordinator does not respond, will start an election
 func (s *Server) messagetimer() {
-	timer := time.NewTimer(4 * time.Second)
+	timer := time.NewTimer(2 * time.Second)
 	<-timer.C
 	if s.waitresponse {
 		fmt.Println(s.ip, "message to coordinator timed out") //For debugging/demo purposes
@@ -155,10 +145,11 @@ func (s *Server) electiontimer() {
 	<-timer.C
 	if s.electing {
 		s.declarevictory()
-		//synctxns()
+		s.synctxns()
 	}
 }
 
+//This functions declares victory
 func (s *Server) declarevictory() {
 	s.electing = false
 	s.normal = true
@@ -227,13 +218,10 @@ func stringInSlice(a string, list []string) bool {
 
 //This function is called on separate threads whenever a connection comes into the specified port
 func (s *Server) handleConnection(c net.Conn) {
-	go s.messageProcess(c)
-
 	for {
 		netData, err := bufio.NewReader(c).ReadString('\n')
-
 		if err != nil {
-			fmt.Println('c', err)
+			fmt.Println(err)
 			return
 		}
 
@@ -244,23 +232,45 @@ func (s *Server) handleConnection(c net.Conn) {
 		}
 
 		command := strings.Split(temp, " ")
-		if command[0] == "read" {
+		if command[0] == "make" || command[0] == "delete" || command[0] == "write" {
+			if !s.normal {
+				reply := "Server busy, retry later\n"
+				c.Write([]byte(reply))
+			} else if s.role == Leader {
+				reply := "Direct writes blocked for leader\n"
+				c.Write([]byte(reply))
+			} else if command[0] == "make" {
+				if _, err := os.Stat(command[1]); !os.IsNotExist(err) {
+					reply := "Path already exist\n"
+					c.Write([]byte(reply))
+				} else {
+					s.startBroadcast(temp)
+				}
+			} else if command[0] == "delete" || command[0] == "write" {
+				if _, err := os.Stat(command[1]); os.IsNotExist(err) {
+					reply := "Path does not exist\n"
+					c.Write([]byte(reply))
+				} else {
+					s.startBroadcast(temp)
+				}
+			}
+		} else if command[0] == "read" {
 			if _, err := os.Stat(command[1]); os.IsNotExist(err) {
 				fmt.Println("Path does not exist")
 				reply := "Path does not exist\n"
 				c.Write([]byte(reply))
-			} else if _, err := os.Stat(command[1] + "/data"); os.IsNotExist(err) {
-				fmt.Println("No content in directory")
-				reply := "No content in directory\n"
-				c.Write([]byte(reply))
 			} else {
-				s.read_lock.Lock()
-				body, err := ioutil.ReadFile(command[1] + "/data")
+				f, err := os.Open(command[1] + "/data")
 				if err != nil {
-					log.Fatalf("unable to read file: %v", err)
+					log.Fatal(err)
 				}
-				s.read_lock.Unlock()
-				datStr := string(body)
+				dat := make([]byte, 20)
+				_, err2 := f.Read(dat)
+				if err2 != nil {
+					log.Fatal(err)
+				}
+				f.Close()
+				datStr := string(dat)
 				fmt.Println(datStr)
 				c.Write([]byte(datStr + "\n"))
 			}
@@ -316,6 +326,7 @@ func (s *Server) handleConnection(c net.Conn) {
 			fmt.Println("Server", s.ip, "received message:", temp)
 			s.electing = false
 			s.waiting = false
+			s.normal = true
 			s.coordinator = command[1]
 			epoch, _ := strconv.Atoi(command[3])
 			s.highestTxnId.epoch = epoch
@@ -370,69 +381,25 @@ func (s *Server) handleConnection(c net.Conn) {
 				}
 			}
 		} else {
-			s.arr_lock.Lock()
-			s.reqQueue = append(s.reqQueue, netData)
-			s.arr_lock.Unlock()
-		}
-	}
-
-}
-
-func (s *Server) messageProcess(c net.Conn) {
-
-	for {
-		s.arr_lock.Lock()
-		if len(s.reqQueue) == 0 {
-			s.arr_lock.Unlock()
-			continue
-		}
-
-		netData := s.reqQueue[0]
-		s.reqQueue = s.reqQueue[1:]
-		s.arr_lock.Unlock()
-		temp := strings.TrimSpace(string(netData))
-		command := strings.Split(temp, " ")
-		if command[0] == "make" || command[0] == "delete" || command[0] == "write" {
-			if !s.normal {
-				reply := "Server busy, retry later\n"
-				c.Write([]byte(reply))
-			} else if command[0] == "make" {
-				if _, err := os.Stat(command[1]); !os.IsNotExist(err) {
-					reply := "Path already exist\n"
-					c.Write([]byte(reply))
-				} else {
-					s.startBroadcast(temp)
-				}
-			} else if command[0] == "delete" || command[0] == "write" {
-				if _, err := os.Stat(command[1]); os.IsNotExist(err) {
-					reply := "Path does not exist\n"
-					c.Write([]byte(reply))
-				} else {
-					s.startBroadcast(temp)
-				}
-			}
-		} else {
 			reply := "Unrecognised command: " + string(netData)
 			c.Write([]byte(reply))
 		}
+
 	}
+	c.Close()
 }
 
-func (s *Server) startBroadcast(req string) {
+func (s *Server) startBroadcast(temp string) {
 	switch s.role {
 	case Follower:
 		c := s.leaderConn
-		s.timedout = req
+		s.timedout = temp
 		s.waitresponse = true
 		go s.messagetimer()
-		c.Write([]byte(req + "\n"))
+		c.Write([]byte(temp + "\n"))
 
 	case Leader:
-		if !s.normal {
-			break
-		}
-		temp := strings.Split(req, " ")
-		s.executeLeaderBroadcast(req, temp)
+		s.myChannel <- temp + "\n"
 	}
 }
 
@@ -546,59 +513,60 @@ func (s *Server) leaderBroadcast(c net.Conn) {
 	reader := bufio.NewReader(c)
 	var bcMsg string
 	for {
-		fwd, err := reader.ReadString('\n')
-		if err != nil {
-			fmt.Println(err)
-			return
+		select {
+		case ownClientReq := <-s.myChannel:
+			fmt.Println("ownClientReq")
+			ownClientReq = strings.TrimSuffix(string(ownClientReq), "\n")
+			bcMsg = strings.TrimSpace(ownClientReq)
+
+		default:
+			fwd, err := reader.ReadString('\n')
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			bcMsg = strings.TrimSpace(string(fwd))
 		}
-		bcMsg = strings.TrimSpace(string(fwd))
 
 		if !s.normal {
 			continue
 		}
 		temp := strings.Split(bcMsg, " ")
-		s.executeLeaderBroadcast(bcMsg, temp)
-		bcMsg = ""
-		temp = nil
-	}
-}
 
-func (s *Server) executeLeaderBroadcast(bcMsg string, temp []string) {
-	if temp[0] == "ACK" {
-		mutex.Lock()
-		s.txnReplies[temp[1]] += 1
-		replies := s.txnReplies[temp[1]]
-		mutex.Unlock()
-		//TODO: remove committed txn from map?
-		if replies == s.quorum {
-			sendMsg := "COMMIT"
-			sendMsg += " " + strings.Join(temp[1:], " ") + "\n"
+		if temp[0] == "ACK" {
+			s.txnReplies[temp[1]] += 1
+			replies := s.txnReplies[temp[1]]
+			//TODO: remove committed txn from map?
+			if replies == s.quorum {
+				sendMsg := "COMMIT"
+				sendMsg += " " + strings.Join(temp[1:], " ") + "\n"
+				// c.Write([]byte(sendMsg))
+				for i, _ := range s.listConn {
+					fc := *s.listConn[i]
+					fc.Write([]byte(sendMsg))
+				}
+				printMsg := strings.TrimSuffix(sendMsg, "\n")
+				s.txnlog.Println(printMsg)
+				replies = 0
+				executeCommand(temp[2:])
+			}
+		} else if len(temp) > 0 {
+			//convert request to transaction
+			id := TxnId{s.highestTxnId.epoch, s.highestTxnId.counter + 1}
+			s.highestTxnId = id
+			s.txnReplies[txnid2str(id)] = 1
+
+			sendMsg := "PROPOSE" + " " + txnid2str(id) + " " + bcMsg + "\n"
+			printMsg := strings.TrimSuffix(sendMsg, "\n")
+			s.txnlog.Println(printMsg)
 			// c.Write([]byte(sendMsg))
 			for i, _ := range s.listConn {
 				fc := *s.listConn[i]
 				fc.Write([]byte(sendMsg))
 			}
-			printMsg := strings.TrimSuffix(sendMsg, "\n")
-			s.txnlog.Println(printMsg)
-			replies = 0
-			executeCommand(temp[2:])
 		}
-	} else if len(temp) > 0 {
-		//convert request to transaction
-		id := TxnId{s.highestTxnId.epoch, s.highestTxnId.counter + 1}
-		s.highestTxnId = id
-		mutex.Lock()
-		s.txnReplies[txnid2str(id)] = 1
-		mutex.Unlock()
-
-		sendMsg := "PROPOSE" + " " + txnid2str(id) + " " + bcMsg + "\n"
-		printMsg := strings.TrimSuffix(sendMsg, "\n")
-		s.txnlog.Println(printMsg)
-		// c.Write([]byte(sendMsg))
-		for i, _ := range s.listConn {
-			fc := *s.listConn[i]
-			fc.Write([]byte(sendMsg))
-		}
+		bcMsg = ""
+		temp = nil
 	}
 }
 
@@ -690,6 +658,8 @@ func (s *Server) replaylog(c net.Conn) {
 	sc := bufio.NewScanner(dstr)
 	for sc.Scan() {
 		line := sc.Text()
+		fmt.Print(strings.Split(line, ":"))
+		fmt.Print("\n")
 		msg := strings.Split(line, ":")[4]
 		msg = strings.TrimSpace(msg)
 		c.Write([]byte(msg + "\n"))

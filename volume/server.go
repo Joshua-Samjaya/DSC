@@ -233,47 +233,52 @@ func (s *Server) handleConnection(c net.Conn) {
 
 		command := strings.Split(temp, " ")
 		if command[0] == "make" || command[0] == "delete" || command[0] == "write" {
-			if !s.normal {
-				reply := "Server busy, retry later\n"
-				c.Write([]byte(reply))
-			} else if s.role == Leader {
-				reply := "Direct writes blocked for leader\n"
-				c.Write([]byte(reply))
-			} else if command[0] == "make" {
-				if _, err := os.Stat(command[1]); !os.IsNotExist(err) {
-					reply := "Path already exist\n"
+			go func() {
+				if !s.normal {
+					reply := "Server busy, retry later\n"
 					c.Write([]byte(reply))
-				} else {
-					s.startBroadcast(temp)
+				} else if s.role == Leader {
+					reply := "Direct writes blocked for leader\n"
+					c.Write([]byte(reply))
+				} else if command[0] == "make" {
+					if _, err := os.Stat(command[1]); !os.IsNotExist(err) {
+						reply := "Path already exist\n"
+						c.Write([]byte(reply))
+					} else {
+						s.startBroadcast(temp)
+					}
+				} else if command[0] == "delete" || command[0] == "write" {
+					if _, err := os.Stat(command[1]); os.IsNotExist(err) {
+						reply := "Path does not exist\n"
+						c.Write([]byte(reply))
+					} else {
+						s.startBroadcast(temp)
+					}
 				}
-			} else if command[0] == "delete" || command[0] == "write" {
+			}()
+
+		} else if command[0] == "read" {
+			go func() {
 				if _, err := os.Stat(command[1]); os.IsNotExist(err) {
+					fmt.Println("Path does not exist")
 					reply := "Path does not exist\n"
 					c.Write([]byte(reply))
 				} else {
-					s.startBroadcast(temp)
+					f, err := os.Open(command[1] + "/data")
+					if err != nil {
+						log.Fatal(err)
+					}
+					dat := make([]byte, 20)
+					_, err2 := f.Read(dat)
+					if err2 != nil {
+						log.Fatal(err)
+					}
+					f.Close()
+					datStr := string(dat)
+					fmt.Println(datStr)
+					c.Write([]byte(datStr + "\n"))
 				}
-			}
-		} else if command[0] == "read" {
-			if _, err := os.Stat(command[1]); os.IsNotExist(err) {
-				fmt.Println("Path does not exist")
-				reply := "Path does not exist\n"
-				c.Write([]byte(reply))
-			} else {
-				f, err := os.Open(command[1] + "/data")
-				if err != nil {
-					log.Fatal(err)
-				}
-				dat := make([]byte, 20)
-				_, err2 := f.Read(dat)
-				if err2 != nil {
-					log.Fatal(err)
-				}
-				f.Close()
-				datStr := string(dat)
-				fmt.Println(datStr)
-				c.Write([]byte(datStr + "\n"))
-			}
+			}()
 		} else if command[0] == "COORDINATOR" {
 			if s.ip == command[1] {
 				continue
@@ -326,6 +331,7 @@ func (s *Server) handleConnection(c net.Conn) {
 			fmt.Println("Server", s.ip, "received message:", temp)
 			s.electing = false
 			s.waiting = false
+			s.normal = true
 			s.coordinator = command[1]
 			epoch, _ := strconv.Atoi(command[3])
 			s.highestTxnId.epoch = epoch
@@ -514,6 +520,7 @@ func (s *Server) leaderBroadcast(c net.Conn) {
 	for {
 		select {
 		case ownClientReq := <-s.myChannel:
+			fmt.Println("ownClientReq")
 			ownClientReq = strings.TrimSuffix(string(ownClientReq), "\n")
 			bcMsg = strings.TrimSpace(ownClientReq)
 
@@ -656,6 +663,8 @@ func (s *Server) replaylog(c net.Conn) {
 	sc := bufio.NewScanner(dstr)
 	for sc.Scan() {
 		line := sc.Text()
+		fmt.Print(strings.Split(line, ":"))
+		fmt.Print("\n")
 		msg := strings.Split(line, ":")[4]
 		msg = strings.TrimSpace(msg)
 		c.Write([]byte(msg + "\n"))
