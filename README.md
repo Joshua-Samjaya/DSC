@@ -7,8 +7,8 @@ This repository contains a working implementation of lightweight Zookeepeer as a
 2. Node4 to node7 as clients
 
 The implementation support the following requests
-1. **make <dir_name>**                  : make a directory of the specified name
-2. **delete  <dir_name>**               : delete the directory with specified name
+1. **make <dir_name>**                  : make a directory with the name dir_name
+2. **delete  <dir_name>**               : delete the directory with name dir_name
 3. **write <dir_name> <dir_content>**   : overwrite the content of dir_name with dir_content 
 4. **read <dir_name>**                  : read the content of dir_name
 
