@@ -7,27 +7,27 @@ This repository contains a working implementation of lightweight Zookeepeer as a
 2. Node4 to node7 as clients
 
 The imlementation support the following requests
-1. make <dir_name>                  : make a directory of the specified name
-2. delete  <dir_name>               : delete the directory with specified name
-3. write <dir_name> <dir_content>   : overwrite the content of dir_name with dir_content 
-4. read <dir_name>                  : read the content of dir_name
+1. **make <dir_name>**                  : make a directory of the specified name
+2. **delete  <dir_name>**               : delete the directory with specified name
+3. **write <dir_name> <dir_content>**   : overwrite the content of dir_name with dir_content 
+4. **read <dir_name>**                  : read the content of dir_name
 
 ## Documentation
 There are three scripts, which are:
-1. server.go        : the server-side script
-2. client.go        : the client-side script; handles one request at a time
-3. testclient.go    : the client-side testing script; handle multiple requests from a specified command input file
+1. **server.go**        : the server-side script
+2. **client.go**     : the client-side script; handles one request at a time
+3. **testclient.go**   : the client-side testing script; handle multiple requests from a specified command input file
 
 To run the code, follow the steps below:
 1. Build and connect to all containers
-2. For the server node, run the following from main dir: **go run home/volume/server.go**. It is important to run node3 first as it is the initial leader.
-3. For the client node, run **cd home/volume** followed by **go run client.go**. Specify the server node to connect to by inputting its IP.
+2. For the server node, run the following from main dir: ***go run home/volume/server.go***. It is important to run node3 first as it is the initial leader.
+3. For the client node, run ***cd home/volume*** followed by ***go run client.go***. Specify the server node to connect to by inputting its IP.
 4. Input requests from client to server
 
 To test the code, follow these steps:
 1. Build and connect to all containers
-2. For the server node, run the following from main dir: **go run home/volume/server.go**. It is important to run node3 first as it is the initial leader.
-3. For the client nodes, run **cd home/volume** followed by **go run testclient.go <path to command file>**. Specify the server node to connect to by inputting its IP.
+2. For the server node, run the following from main dir: ***go run home/volume/server.go***. It is important to run node3 first as it is the initial leader.
+3. For the client nodes, run ***cd home/volume*** followed by ***go run testclient.go <path to command file>***. Specify the server node to connect to by inputting its IP.
 4. The script will automatically sent requests to the server at a rate of 10 requests per second.
 
 
