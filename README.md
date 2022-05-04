@@ -5,6 +5,7 @@
 This repository contains a working implementation of lightweight Zookeepeer as a file storage. The infrastructure is build on top of Docker to simulate multiple Zookeeper servers and clients. The current architecture is as follows:
 1. Node1 to node3 as servers (Node3 as initial leader)
 2. Node4 to node8 as clients
+3. Each node is assigned an IP address in the network 10.10.10.0/24, which is specified in the *docker-compose.yml*
 
 The implementation support the following requests
 1. **make <dir_name>**                  : make a directory with the name dir_name
