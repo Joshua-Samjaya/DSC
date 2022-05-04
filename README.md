@@ -35,7 +35,7 @@ To run the code, follow these steps:
 To test the code, follow these steps:
 1. Build and connect to all containers
 2. For the server nodes, run the following from main dir: ***go run home/volume/server.go***. It is important to run node3 first as it is the initial leader.
-3. For the client nodes, run ***cd home/volume*** followed by ***go run testclient.go <path_to_command_file>***. Specify the server node to connect to by inputting its IP.
+3. For the client nodes, run ***cd home/volume*** followed by ***go run testclient.go <path_to_command_file>***. Specify the server node to connect to by inputting its IP. The test cases are inside the *home/volume/tests* directory
 4. The script will automatically sent requests to the server at a rate of 10 requests per second.
 
 
