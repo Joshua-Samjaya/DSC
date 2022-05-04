@@ -14,7 +14,10 @@ The implementation support the following requests
 
 The implementation supports concurrent operation from clients, where multiple clients can read/write to different servers concurrently. The implementation guarantees FIFO write order per individual client + liveliness to serve the requests from all clients. 
 
-If a server crash, the servers will continue operating as long as the number of alive servers is greater than the quorum size. If the crashed server is the leader, start election and elect new leader before continuing process as normal. If a crashed server rejoins, it will commit all logs from the current leader and continue operating, but it will not trigger another election.
+Fault tolerance scenarios:
+1. If a server crash, the servers will continue operating as long as the number of alive servers is greater than the quorum size. 
+2. If the crashed server is the leader, one of the servers will start election and elect new leader before continuing process as normal. During election, all requests from client is dropped and clients has to retry.
+3. If the crashed server rejoins, it will request for transaction logs from the leader and commit all logs from the current leader before continuing operation normally. It will not trigger another election.
 
 ## Documentation
 There are three scripts, which are:
