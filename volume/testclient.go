@@ -16,18 +16,15 @@ func main() {
 		fmt.Println("Too little parameters! Please only run as:")
 		fmt.Println("go run testclient.go <command_file>")
 		os.Exit(1)
-
 	}
 
 	if len(os.Args) != 2 {
 		fmt.Println("Too many parameters! Please only run as:")
 		fmt.Println("go run testclient.go <command_file>")
 		os.Exit(1)
-
 	}
-	cmd_file := os.Args[1]
-	fmt.Println(cmd_file)
 
+	cmd_file := os.Args[1]
 	fmt.Println("Client alive")
 
 	reader := bufio.NewReader(os.Stdin)
@@ -60,8 +57,9 @@ func main() {
 	for {
 		scanner := bufio.NewScanner(file)
 
+		// for loop to send requests from specified command input file
 		for scanner.Scan() {
-			// 10 req per second
+			// 10 requests per second
 			time.Sleep(time.Millisecond * 100)
 
 			text := scanner.Text()
@@ -89,6 +87,7 @@ func main() {
 
 }
 
+//consume response from server
 func handleClientConn(c net.Conn) {
 	for {
 		netData, err := bufio.NewReader(c).ReadString('\n')

@@ -31,6 +31,8 @@ func main() {
 	go handleClientConn(c)
 
 	fmt.Print(">> ")
+
+	//send requests from client to server
 	for {
 		reader := bufio.NewReader(os.Stdin)
 		text, _ := reader.ReadString('\n')
@@ -57,6 +59,7 @@ func main() {
 
 }
 
+//consume response from server
 func handleClientConn(c net.Conn) {
 	for {
 		netData, err := bufio.NewReader(c).ReadString('\n')

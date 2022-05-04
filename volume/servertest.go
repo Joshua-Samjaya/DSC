@@ -66,6 +66,7 @@ var mutex = &sync.RWMutex{}
 
 /* --- GLOBAL VARIABLES END --- */
 
+// connect to other servers
 func (s *Server) connectToPeers() {
 	port := ":8080"
 	switch s.role {
@@ -159,6 +160,8 @@ func (s *Server) electiontimer() {
 	}
 }
 
+//This function is run by the winning server to declare itself the leader
+//The new leader will broadcast to all servers and initiate new connections again
 func (s *Server) declarevictory() {
 	s.electing = false
 	s.normal = true
@@ -332,7 +335,6 @@ func (s *Server) handleConnection(c net.Conn) {
 				time.Sleep(1 * time.Second)
 				s.startBroadcast(s.timedout)
 			}
-
 		} else if command[0] == "REJOIN" {
 			if s.role == "LEADER" {
 				fmt.Println("Server", s.ip, "received message:", temp)
@@ -378,6 +380,9 @@ func (s *Server) handleConnection(c net.Conn) {
 
 }
 
+//This function is called to process buffered requests, which are "make", "delete", or "write"
+//A request is buffered if it requires propose and commit across the quorum. Hence, read and leader election requests are not buffered but served immediately
+//The buffer queue ensures liveliness to respond to client messages, allowing server to accept many write requests at the same time, although it still serves FIFO
 func (s *Server) messageProcess(c net.Conn) {
 
 	for {
@@ -418,6 +423,7 @@ func (s *Server) messageProcess(c net.Conn) {
 	}
 }
 
+//This function handles the broadcasting of requests from client to the rest of the servers, depending on the state of the servers (leaders/followers)
 func (s *Server) startBroadcast(req string) {
 	switch s.role {
 	case Follower:
@@ -436,6 +442,7 @@ func (s *Server) startBroadcast(req string) {
 	}
 }
 
+//This function set a new transaction ID
 func newTransaction(id TxnId, req string) Transaction {
 	txn := Transaction{
 		id:  id,
@@ -444,6 +451,7 @@ func newTransaction(id TxnId, req string) Transaction {
 	return txn
 }
 
+//This function handles follower receive broadcast message from other servers
 func (s *Server) followerBroadcast(c net.Conn) {
 	reader := bufio.NewReader(c)
 	for {
@@ -542,6 +550,7 @@ func str2txnid(str string) TxnId {
 
 /* --- UTILITY FUNCTIONS END --- */
 
+//This function handles the leader receiving requests before broadcasting to the rest of the server
 func (s *Server) leaderBroadcast(c net.Conn) {
 	reader := bufio.NewReader(c)
 	var bcMsg string
@@ -563,6 +572,7 @@ func (s *Server) leaderBroadcast(c net.Conn) {
 	}
 }
 
+//This function handles the server broadcasting the received requests to the rest of server
 func (s *Server) executeLeaderBroadcast(bcMsg string, temp []string) {
 	if temp[0] == "ACK" {
 		mutex.Lock()
@@ -602,6 +612,7 @@ func (s *Server) executeLeaderBroadcast(bcMsg string, temp []string) {
 	}
 }
 
+//This function handles the actual processing and executing of requests locally in each server
 func executeCommand(command []string) {
 	if command[0] == "make" {
 		if _, err := os.Stat(command[1]); !os.IsNotExist(err) {
@@ -793,8 +804,6 @@ func main() {
 		go server.rejoin()
 	}
 
-	// go server.recv()
-	// time.Sleep(1 * time.Second)
 	PORT := ":2888"
 	fmt.Println("Server alive. Listening on port", PORT)
 
@@ -805,6 +814,7 @@ func main() {
 	}
 	defer l.Close()
 
+	// For every new connection received, create a new thread to serve the connection
 	for {
 		c, err := l.Accept()
 		if err != nil {
